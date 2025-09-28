@@ -75,16 +75,13 @@ def load_data():
 
 def preprocess_data(df):
     """Preprocessa os dados para análise"""
-    # Criar cópia dos dados
     data = df.copy()
     
-    # Tratar valores ausentes (representados como '-')
     columns_to_clean = ['Solo Kills', 'FB Victim', 'Country', 'FlashKeybind']
     for col in columns_to_clean:
         if col in data.columns:
             data[col] = data[col].replace('-', np.nan)
     
-    # Converter tipos de dados
     numeric_columns = ['Games', 'Win rate', 'KDA', 'Avg kills', 'Avg deaths', 'Avg assists',
                       'CSPerMin', 'GoldPerMin', 'KP%', 'DamagePercent', 'DPM', 'VSPM',
                       'Avg WPM', 'Avg WCPM', 'Avg VWPM', 'GD@15', 'CSD@15', 'XPD@15',
@@ -94,7 +91,6 @@ def preprocess_data(df):
         if col in data.columns:
             data[col] = pd.to_numeric(data[col], errors='coerce')
     
-    # Engenharia de variáveis
     data['Kill_Death_Ratio'] = data['Avg kills'] / data['Avg deaths'].replace(0, 0.1)
     data['Efficiency_Score'] = (data['Avg kills'] + data['Avg assists']) / data['Avg deaths'].replace(0, 0.1)
     data['Economic_Efficiency'] = data['GoldPerMin'] / data['CSPerMin'].replace(0, 1)
@@ -102,7 +98,6 @@ def preprocess_data(df):
     data['Team_Contribution'] = data['KP%'] * data['DamagePercent']
     data['Vision_Control'] = (data['Avg WPM'] + data['Avg WCPM'] + data['Avg VWPM']) / 3
     
-    # Classificar jogadores por performance
     performance_metrics = ['KDA', 'Win rate', 'DamagePercent', 'KP%']
     data['Performance_Score'] = data[performance_metrics].fillna(0).mean(axis=1)
     data['Performance_Tier'] = pd.cut(data['Performance_Score'], 
