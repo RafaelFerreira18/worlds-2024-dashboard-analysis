@@ -16,7 +16,6 @@ from statsmodels.stats.diagnostic import het_breuschpagan
 import warnings
 warnings.filterwarnings('ignore')
 
-# Configuração da página
 st.set_page_config(
     page_title="LoL Esports Analytics Dashboard",
     page_icon="🎮",
@@ -24,7 +23,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS personalizado para melhorar a aparência
 st.markdown("""
 <style>
     .main-header {
@@ -52,6 +50,14 @@ st.markdown("""
         border-left: 4px solid #1f77b4;
         border-radius: 0.25rem;
         margin: 1rem 0;
+        color: #2c3e50;
+    }
+    .insight-box h3, .insight-box h4 {
+        color: #1f77b4;
+        margin-top: 0;
+    }
+    .insight-box p, .insight-box ul, .insight-box li {
+        color: #2c3e50;
     }
     .warning-box {
         background-color: #fff3cd;
@@ -59,13 +65,20 @@ st.markdown("""
         border-left: 4px solid #ffc107;
         border-radius: 0.25rem;
         margin: 1rem 0;
+        color: #856404;
+    }
+    .warning-box h3, .warning-box h4 {
+        color: #b8860b;
+        margin-top: 0;
+    }
+    .warning-box p, .warning-box ul, .warning-box li {
+        color: #856404;
     }
 </style>
 """, unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
-    """Carrega e retorna os dados dos jogadores"""
     try:
         df = pd.read_csv('player_statistics_cleaned_final.csv')
         return df
@@ -74,7 +87,6 @@ def load_data():
         st.stop()
 
 def preprocess_data(df):
-    """Preprocessa os dados para análise"""
     data = df.copy()
     
     columns_to_clean = ['Solo Kills', 'FB Victim', 'Country', 'FlashKeybind']
@@ -107,36 +119,28 @@ def preprocess_data(df):
     return data
 
 def main():
-    """Função principal do dashboard"""
-    # Cabeçalho principal
-    st.markdown('<h1 class="main-header">🎮 LoL Esports Analytics Dashboard</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">LoL Esports Analytics Dashboard</h1>', unsafe_allow_html=True)
     st.markdown("### Análise Estatística e Científica de Dados de Jogadores Profissionais")
     
-    # Carregar dados
     df = load_data()
     data = preprocess_data(df)
     
-    # Sidebar para navegação
-    st.sidebar.title("📊 Navegação")
+    st.sidebar.title("Navegação")
     page = st.sidebar.selectbox(
         "Escolha uma seção:",
-        ["🏠 Visão Geral", "🔍 Análise Exploratória", "🧹 Preparação dos Dados", 
-         "📈 Modelagem Estatística", "🧪 Testes de Hipóteses", "📊 Visualizações Interativas", 
-         "💡 Soluções Práticas"]
+        ["Visão Geral", "Análise Exploratória", "Preparação dos Dados", 
+         "Modelagem Estatística", "Testes de Hipóteses", "Visualizações Interativas", 
+         "Soluções Práticas"]
     )
     
-    # Filtros laterais
-    st.sidebar.markdown("### 🔧 Filtros")
+    st.sidebar.markdown("### Filtros")
     
-    # Filtro por posição
     positions = ['Todas'] + list(data['Position'].unique())
     selected_position = st.sidebar.selectbox("Posição:", positions)
     
-    # Filtro por país
     countries = ['Todos'] + [c for c in data['Country'].unique() if pd.notna(c)]
     selected_country = st.sidebar.selectbox("País:", countries)
     
-    # Filtro por win rate
     min_winrate, max_winrate = st.sidebar.slider(
         "Win Rate (%)", 
         float(data['Win rate'].min()), 
@@ -145,7 +149,6 @@ def main():
         format="%.2f"
     )
     
-    # Aplicar filtros
     filtered_data = data.copy()
     if selected_position != 'Todas':
         filtered_data = filtered_data[filtered_data['Position'] == selected_position]
@@ -156,27 +159,24 @@ def main():
         (filtered_data['Win rate'] <= max_winrate)
     ]
     
-    # Exibir página selecionada
-    if page == "🏠 Visão Geral":
+    if page == "Visão Geral":
         show_overview(data, filtered_data)
-    elif page == "🔍 Análise Exploratória":
+    elif page == "Análise Exploratória":
         show_exploratory_analysis(data, filtered_data)
-    elif page == "🧹 Preparação dos Dados":
+    elif page == "Preparação dos Dados":
         show_data_preparation(df, data)
-    elif page == "📈 Modelagem Estatística":
+    elif page == "Modelagem Estatística":
         show_statistical_modeling(data, filtered_data)
-    elif page == "🧪 Testes de Hipóteses":
+    elif page == "Testes de Hipóteses":
         show_hypothesis_testing(data, filtered_data)
-    elif page == "📊 Visualizações Interativas":
+    elif page == "Visualizações Interativas":
         show_interactive_visualizations(data, filtered_data)
-    elif page == "💡 Soluções Práticas":
+    elif page == "Soluções Práticas":
         show_practical_solutions(data, filtered_data)
 
 def show_overview(data, filtered_data):
-    """Mostra visão geral do dataset"""
-    st.markdown('<h2 class="section-header">🏠 Visão Geral do Dataset</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">Visão Geral do Dataset</h2>', unsafe_allow_html=True)
     
-    # Informações básicas
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -188,35 +188,32 @@ def show_overview(data, filtered_data):
     with col4:
         st.metric("Posições", data['Position'].nunique())
     
-    # Contexto do dataset
     st.markdown("""
     <div class="insight-box">
-    <h3>📋 Contexto do Dataset</h3>
+    <h3>Contexto do Dataset</h3>
     <p>Este dataset contém estatísticas de jogadores profissionais de League of Legends, 
     incluindo métricas de performance individual, econômica e de equipe. Os dados permitem 
     análises sobre fatores que contribuem para o sucesso em partidas competitivas.</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Estatísticas descritivas básicas
-    st.markdown("### 📈 Estatísticas Descritivas")
+    st.markdown("### Estatísticas Descritivas")
     
     key_metrics = ['Win rate', 'KDA', 'Avg kills', 'Avg deaths', 'DamagePercent', 'GoldPerMin']
     stats_df = filtered_data[key_metrics].describe().round(3)
     st.dataframe(stats_df, use_container_width=True)
     
-    # Distribuição por posição
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 🎯 Distribuição por Posição")
+        st.markdown("### Distribuição por Posição")
         position_counts = filtered_data['Position'].value_counts()
         fig = px.pie(values=position_counts.values, names=position_counts.index,
                     title="Distribuição de Jogadores por Posição")
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.markdown("### 🌍 Top 10 Países")
+        st.markdown("### Top 10 Países")
         country_counts = filtered_data['Country'].value_counts().head(10)
         fig = px.bar(x=country_counts.values, y=country_counts.index,
                     orientation='h', title="Jogadores por País")
@@ -224,16 +221,13 @@ def show_overview(data, filtered_data):
         st.plotly_chart(fig, use_container_width=True)
 
 def show_exploratory_analysis(data, filtered_data):
-    """Análise exploratória detalhada"""
-    st.markdown('<h2 class="section-header">🔍 Análise Exploratória de Dados</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">Análise Exploratória de Dados</h2>', unsafe_allow_html=True)
     
-    # Identificação de outliers
-    st.markdown("### 🎯 Identificação de Outliers")
+    st.markdown("### Identificação de Outliers")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        # Boxplot para identificar outliers
         metric_for_outliers = st.selectbox(
             "Selecione uma métrica para análise de outliers:",
             ['KDA', 'Win rate', 'DamagePercent', 'GoldPerMin', 'Avg kills']
@@ -243,7 +237,6 @@ def show_exploratory_analysis(data, filtered_data):
                     title=f"Distribuição de {metric_for_outliers} por Posição")
         st.plotly_chart(fig, use_container_width=True)
         
-        # Estatísticas dos outliers
         Q1 = filtered_data[metric_for_outliers].quantile(0.25)
         Q3 = filtered_data[metric_for_outliers].quantile(0.75)
         IQR = Q3 - Q1
@@ -256,22 +249,19 @@ def show_exploratory_analysis(data, filtered_data):
         st.metric("Outliers Identificados", len(outliers))
     
     with col2:
-        # Top performers
-        st.markdown("### 🏆 Top Performers")
+        st.markdown("### Top Performers")
         top_performers = filtered_data.nlargest(5, 'Performance_Score')[
             ['PlayerName', 'TeamName', 'Position', 'Performance_Score', 'Win rate', 'KDA']
         ].round(3)
         st.dataframe(top_performers, use_container_width=True)
         
-        # Piores performers
-        st.markdown("### 📉 Jogadores com Menor Performance")
+        st.markdown("### Jogadores com Menor Performance")
         bottom_performers = filtered_data.nsmallest(5, 'Performance_Score')[
             ['PlayerName', 'TeamName', 'Position', 'Performance_Score', 'Win rate', 'KDA']
         ].round(3)
         st.dataframe(bottom_performers, use_container_width=True)
     
-    # Matriz de correlação
-    st.markdown("### 📊 Matriz de Correlação")
+    st.markdown("### Matriz de Correlação")
     
     correlation_metrics = ['Win rate', 'KDA', 'Avg kills', 'DamagePercent', 'GoldPerMin', 
                           'KP%', 'CSPerMin', 'Kill_Death_Ratio', 'Performance_Score']
@@ -285,10 +275,9 @@ def show_exploratory_analysis(data, filtered_data):
     fig.update_layout(width=800, height=600)
     st.plotly_chart(fig, use_container_width=True)
     
-    # Insights da correlação
     st.markdown("""
     <div class="insight-box">
-    <h4>🔍 Insights da Correlação:</h4>
+    <h4>Insights da Correlação:</h4>
     <ul>
     <li><strong>KDA e Win Rate:</strong> Correlação forte positiva - jogadores com melhor KDA tendem a vencer mais</li>
     <li><strong>Damage Percent e KP%:</strong> Jogadores que causam mais dano participam mais dos kills da equipe</li>
@@ -297,8 +286,7 @@ def show_exploratory_analysis(data, filtered_data):
     </div>
     """, unsafe_allow_html=True)
     
-    # Análise por posição
-    st.markdown("### 🎭 Análise por Posição")
+    st.markdown("### Análise por Posição")
     
     position_stats = filtered_data.groupby('Position')[
         ['Win rate', 'KDA', 'DamagePercent', 'GoldPerMin', 'KP%']
@@ -306,7 +294,6 @@ def show_exploratory_analysis(data, filtered_data):
     
     st.dataframe(position_stats, use_container_width=True)
     
-    # Gráfico de radar por posição
     positions = filtered_data['Position'].unique()
     selected_positions = st.multiselect(
         "Selecione posições para comparação:",
@@ -323,7 +310,6 @@ def show_exploratory_analysis(data, filtered_data):
             pos_data = filtered_data[filtered_data['Position'] == position]
             values = [pos_data[metric].mean() for metric in metrics_radar]
             
-            # Normalizar valores para 0-1 para melhor visualização
             normalized_values = []
             for i, metric in enumerate(metrics_radar):
                 min_val = filtered_data[metric].min()
@@ -332,7 +318,7 @@ def show_exploratory_analysis(data, filtered_data):
                 normalized_values.append(norm_val)
             
             fig.add_trace(go.Scatterpolar(
-                r=normalized_values + [normalized_values[0]],  # Fechar o polígono
+                r=normalized_values + [normalized_values[0]],
                 theta=metrics_radar + [metrics_radar[0]],
                 fill='toself',
                 name=position
@@ -351,18 +337,15 @@ def show_exploratory_analysis(data, filtered_data):
         st.plotly_chart(fig, use_container_width=True)
 
 def show_data_preparation(original_data, processed_data):
-    """Mostra o processo de preparação dos dados"""
-    st.markdown('<h2 class="section-header">🧹 Preparação e Limpeza dos Dados</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">Preparação e Limpeza dos Dados</h2>', unsafe_allow_html=True)
     
-    # Comparação antes e depois
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 📋 Dados Originais")
+        st.markdown("### Dados Originais")
         st.write(f"**Shape:** {original_data.shape}")
         st.write(f"**Colunas:** {original_data.shape[1]}")
         
-        # Valores ausentes originais
         missing_original = original_data.isnull().sum()
         missing_original = missing_original[missing_original > 0]
         if len(missing_original) > 0:
@@ -372,11 +355,10 @@ def show_data_preparation(original_data, processed_data):
             st.write("**Valores ausentes:** Nenhum")
     
     with col2:
-        st.markdown("### ✨ Dados Processados")
+        st.markdown("### Dados Processados")
         st.write(f"**Shape:** {processed_data.shape}")
         st.write(f"**Colunas:** {processed_data.shape[1]}")
         
-        # Valores ausentes processados
         missing_processed = processed_data.isnull().sum()
         missing_processed = missing_processed[missing_processed > 0]
         if len(missing_processed) > 0:
@@ -385,8 +367,7 @@ def show_data_preparation(original_data, processed_data):
         else:
             st.write("**Valores ausentes:** Todos tratados")
     
-    # Transformações aplicadas
-    st.markdown("### 🔧 Engenharia de Variáveis")
+    st.markdown("### Engenharia de Variáveis")
     
     new_features = {
         'Kill_Death_Ratio': 'Avg kills / Avg deaths (tratando divisão por zero)',
@@ -402,8 +383,7 @@ def show_data_preparation(original_data, processed_data):
     features_df = pd.DataFrame(list(new_features.items()), columns=['Variável', 'Descrição'])
     st.dataframe(features_df, use_container_width=True)
     
-    # Distribuições das novas variáveis
-    st.markdown("### 📊 Distribuição das Novas Variáveis")
+    st.markdown("### Distribuição das Novas Variáveis")
     
     new_vars = ['Kill_Death_Ratio', 'Efficiency_Score', 'Performance_Score']
     
@@ -422,8 +402,7 @@ def show_data_preparation(original_data, processed_data):
     fig.update_layout(title_text="Distribuições das Variáveis Criadas")
     st.plotly_chart(fig, use_container_width=True)
     
-    # Estatísticas de qualidade dos dados
-    st.markdown("### ✅ Qualidade dos Dados")
+    st.markdown("### Qualidade dos Dados")
     
     quality_metrics = {
         'Completude': f"{(processed_data.notna().sum().sum() / processed_data.size) * 100:.2f}%",
@@ -436,11 +415,9 @@ def show_data_preparation(original_data, processed_data):
     st.dataframe(quality_df, use_container_width=True)
 
 def show_statistical_modeling(data, filtered_data):
-    """Modelagem estatística com regressão linear"""
-    st.markdown('<h2 class="section-header">📈 Modelagem Estatística</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">Modelagem Estatística</h2>', unsafe_allow_html=True)
     
-    # Seleção de variáveis para o modelo
-    st.markdown("### 🎯 Configuração do Modelo")
+    st.markdown("### Configuração do Modelo")
     
     col1, col2 = st.columns(2)
     
@@ -465,7 +442,6 @@ def show_statistical_modeling(data, filtered_data):
         st.warning("Selecione pelo menos uma variável independente.")
         return
     
-    # Preparar dados para modelagem
     model_data = filtered_data[selected_features + [target_var]].dropna()
     
     if len(model_data) < 10:
@@ -475,19 +451,15 @@ def show_statistical_modeling(data, filtered_data):
     X = model_data[selected_features]
     y = model_data[target_var]
     
-    # Dividir dados
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
-    # Modelo de regressão linear
     model = LinearRegression()
     model.fit(X_train, y_train)
     
-    # Predições
     y_pred_train = model.predict(X_train)
     y_pred_test = model.predict(X_test)
     
-    # Métricas do modelo
-    st.markdown("### 📊 Performance do Modelo")
+    st.markdown("### Performance do Modelo")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -500,8 +472,7 @@ def show_statistical_modeling(data, filtered_data):
     with col4:
         st.metric("RMSE Teste", f"{np.sqrt(mean_squared_error(y_test, y_pred_test)):.3f}")
     
-    # Coeficientes do modelo
-    st.markdown("### 📋 Coeficientes do Modelo")
+    st.markdown("### Coeficientes do Modelo")
     
     coef_df = pd.DataFrame({
         'Variável': selected_features,
@@ -511,24 +482,20 @@ def show_statistical_modeling(data, filtered_data):
     
     st.dataframe(coef_df, use_container_width=True)
     
-    # Gráfico de importância das variáveis
     fig = px.bar(coef_df, x='Importância', y='Variável', orientation='h',
                 title="Importância das Variáveis (Valor Absoluto dos Coeficientes)")
     fig.update_layout(yaxis={'categoryorder':'total ascending'})
     st.plotly_chart(fig, use_container_width=True)
     
-    # Análise de resíduos
-    st.markdown("### 🔍 Análise de Resíduos")
+    st.markdown("### Análise de Resíduos")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        # Gráfico de valores preditos vs reais
         fig = px.scatter(x=y_test, y=y_pred_test, 
                         title="Valores Preditos vs Reais",
                         labels={'x': 'Valores Reais', 'y': 'Valores Preditos'})
         
-        # Linha de referência y=x
         min_val = min(y_test.min(), y_pred_test.min())
         max_val = max(y_test.max(), y_pred_test.max())
         fig.add_trace(go.Scatter(x=[min_val, max_val], y=[min_val, max_val], 
@@ -538,27 +505,23 @@ def show_statistical_modeling(data, filtered_data):
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        # Distribuição dos resíduos
         residuals = y_test - y_pred_test
         fig = px.histogram(x=residuals, title="Distribuição dos Resíduos",
                           labels={'x': 'Resíduos'})
         st.plotly_chart(fig, use_container_width=True)
     
-    # Modelo estatístico detalhado com statsmodels
-    st.markdown("### 📈 Análise Estatística Detalhada")
+    st.markdown("### Análise Estatística Detalhada")
     
     X_sm = sm.add_constant(X)
     model_sm = sm.OLS(y, X_sm).fit()
     
-    # Mostrar resumo estatístico
     st.text(str(model_sm.summary()))
     
-    # Teste de heterocedasticidade
     _, pvalue_bp, _, _ = het_breuschpagan(model_sm.resid, X_sm)
     
     st.markdown(f"""
     <div class="insight-box">
-    <h4>🧪 Diagnóstico do Modelo:</h4>
+    <h4>Diagnóstico do Modelo:</h4>
     <ul>
     <li><strong>R²:</strong> {model_sm.rsquared:.3f} - Explica {model_sm.rsquared*100:.1f}% da variância</li>
     <li><strong>R² Ajustado:</strong> {model_sm.rsquared_adj:.3f}</li>
@@ -568,8 +531,7 @@ def show_statistical_modeling(data, filtered_data):
     </div>
     """, unsafe_allow_html=True)
     
-    # Predições para novos dados
-    st.markdown("### 🎯 Fazer Predições")
+    st.markdown("### Fazer Predições")
     
     with st.expander("Predizer Performance"):
         pred_values = {}
@@ -588,6 +550,237 @@ def show_statistical_modeling(data, filtered_data):
             prediction = model.predict(pred_input)[0]
             
             st.success(f"**Predição para {target_var}:** {prediction:.3f}")
+
+def show_hypothesis_testing(data, filtered_data):
+    st.markdown('<h2 class="section-header">Testes de Hipóteses</h2>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    Esta seção aplica testes estatísticos para validar insights obtidos na análise exploratória,
+    utilizando intervalos de confiança e testes de significância.
+    """)
+    
+    st.markdown("### Teste 1: Diferença de Performance entre Posições")
+    
+    positions = list(filtered_data['Position'].unique())
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        pos1 = st.selectbox("Primeira posição:", positions, index=0)
+    with col2:
+        pos2 = st.selectbox("Segunda posição:", positions, index=1 if len(positions) > 1 else 0)
+    
+    if pos1 != pos2:
+        data_pos1 = filtered_data[filtered_data['Position'] == pos1]['Performance_Score'].dropna()
+        data_pos2 = filtered_data[filtered_data['Position'] == pos2]['Performance_Score'].dropna()
+        
+        if len(data_pos1) > 1 and len(data_pos2) > 1:
+            t_stat, p_value = stats.ttest_ind(data_pos1, data_pos2)
+            
+            conf_interval_pos1 = stats.t.interval(0.95, len(data_pos1)-1, 
+                                                 loc=data_pos1.mean(), 
+                                                 scale=stats.sem(data_pos1))
+            conf_interval_pos2 = stats.t.interval(0.95, len(data_pos2)-1, 
+                                                 loc=data_pos2.mean(), 
+                                                 scale=stats.sem(data_pos2))
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(f"Média {pos1}", f"{data_pos1.mean():.3f}")
+                st.caption(f"IC 95%: [{conf_interval_pos1[0]:.3f}, {conf_interval_pos1[1]:.3f}]")
+            with col2:
+                st.metric(f"Média {pos2}", f"{data_pos2.mean():.3f}")
+                st.caption(f"IC 95%: [{conf_interval_pos2[0]:.3f}, {conf_interval_pos2[1]:.3f}]")
+            with col3:
+                st.metric("p-value", f"{p_value:.4f}")
+                st.caption("Significativo" if p_value < 0.05 else "Não significativo")
+            
+            if p_value < 0.05:
+                st.markdown(f"""
+                <div class="insight-box">
+                <h4>Resultado Significativo</h4>
+                <p>Há diferença estatisticamente significativa entre a performance de jogadores 
+                {pos1} e {pos2} (p = {p_value:.4f} < 0.05).</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="warning-box">
+                <h4>Resultado Não Significativo</h4>
+                <p>Não há diferença estatisticamente significativa entre a performance de jogadores 
+                {pos1} e {pos2} (p = {p_value:.4f} ≥ 0.05).</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    st.markdown("### Teste 2: Correlação entre KDA e Win Rate")
+    
+    common_data = filtered_data[['KDA', 'Win rate']].dropna()
+    
+    if len(common_data) > 2:
+        corr_coef, corr_p_value = stats.pearsonr(common_data['KDA'], common_data['Win rate'])
+        
+        spear_coef, spear_p_value = stats.spearmanr(common_data['KDA'], common_data['Win rate'])
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Pearson r", f"{corr_coef:.3f}")
+        with col2:
+            st.metric("p-value", f"{corr_p_value:.4f}")
+        with col3:
+            st.metric("Spearman ρ", f"{spear_coef:.3f}")
+        with col4:
+            st.metric("p-value", f"{spear_p_value:.4f}")
+        
+        fig = px.scatter(common_data, x='KDA', y='Win rate', 
+                        title="Correlação entre KDA e Win Rate",
+                        trendline="ols")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        if abs(corr_coef) < 0.3:
+            strength = "fraca"
+        elif abs(corr_coef) < 0.7:
+            strength = "moderada"
+        else:
+            strength = "forte"
+        
+        st.markdown(f"""
+        <div class="insight-box">
+        <h4>Interpretação da Correlação</h4>
+        <ul>
+        <li><strong>Correlação Pearson:</strong> {corr_coef:.3f} (correlação {strength})</li>
+        <li><strong>Significância:</strong> {'Significativa' if corr_p_value < 0.05 else 'Não significativa'} (p = {corr_p_value:.4f})</li>
+        <li><strong>Interpretação:</strong> {'Existe relação linear significativa' if corr_p_value < 0.05 else 'Não há relação linear significativa'} entre KDA e Win Rate</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+def show_interactive_visualizations(data, filtered_data):
+    st.markdown('<h2 class="section-header">Visualizações Interativas</h2>', unsafe_allow_html=True)
+    
+    st.markdown("### Explorador de Relações Multi-dimensional")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        x_var = st.selectbox("Eixo X:", 
+                           ['KDA', 'Win rate', 'DamagePercent', 'GoldPerMin', 'Performance_Score'])
+    with col2:
+        y_var = st.selectbox("Eixo Y:", 
+                           ['Win rate', 'KDA', 'DamagePercent', 'GoldPerMin', 'Performance_Score'])
+    with col3:
+        size_var = st.selectbox("Tamanho:", 
+                              ['Games', 'KP%', 'CSPerMin', 'Avg kills'])
+    with col4:
+        color_var = st.selectbox("Cor:", 
+                               ['Position', 'Performance_Tier', 'Country'])
+    
+    fig = px.scatter(
+        filtered_data, 
+        x=x_var, 
+        y=y_var,
+        size=size_var,
+        color=color_var,
+        hover_data=['PlayerName', 'TeamName', 'Position', 'Win rate', 'KDA'],
+        title=f"{y_var} vs {x_var} (tamanho: {size_var}, cor: {color_var})",
+        width=800,
+        height=600
+    )
+    
+    fig.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("### Mapa de Calor: Performance por Time")
+    
+    team_stats = filtered_data.groupby('TeamName').agg({
+        'Win rate': 'mean',
+        'KDA': 'mean',
+        'DamagePercent': 'mean',
+        'GoldPerMin': 'mean',
+        'Performance_Score': 'mean'
+    }).round(3)
+    
+    team_stats_normalized = (team_stats - team_stats.min()) / (team_stats.max() - team_stats.min())
+    
+    fig = px.imshow(
+        team_stats_normalized.T,
+        x=team_stats_normalized.index,
+        y=team_stats_normalized.columns,
+        color_continuous_scale='RdYlBu_r',
+        title="Performance Normalizada por Time",
+        aspect='auto'
+    )
+    
+    fig.update_layout(
+        xaxis_title="Times",
+        yaxis_title="Métricas",
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+def show_practical_solutions(data, filtered_data):
+    st.markdown('<h2 class="section-header">Soluções Práticas e Recomendações</h2>', unsafe_allow_html=True)
+    
+    st.markdown("### Recomendações Estratégicas")
+    
+    top_performers = filtered_data.nlargest(10, 'Performance_Score')
+    
+    top_stats = top_performers[['KDA', 'Win rate', 'DamagePercent', 'KP%', 'GoldPerMin', 'CSPerMin']].mean()
+    overall_stats = filtered_data[['KDA', 'Win rate', 'DamagePercent', 'KP%', 'GoldPerMin', 'CSPerMin']].mean()
+    
+    st.markdown("#### Características dos Top Performers")
+    
+    comparison_df = pd.DataFrame({
+        'Métrica': top_stats.index,
+        'Top 10 Jogadores': top_stats.values,
+        'Média Geral': overall_stats.values,
+        'Diferença (%)': ((top_stats.values - overall_stats.values) / overall_stats.values * 100)
+    }).round(3)
+    
+    st.dataframe(comparison_df, use_container_width=True)
+    
+    st.markdown(f"""
+    <div class="insight-box">
+    <h4>Insights para Melhoria de Performance:</h4>
+    <ul>
+    <li><strong>KDA Superior:</strong> Top performers mantêm KDA {((top_stats['KDA'] - overall_stats['KDA']) / overall_stats['KDA'] * 100):.1f}% mais alto que a média</li>
+    <li><strong>Participação em Kills:</strong> Maior KP% indica melhor coordenação de equipe</li>
+    <li><strong>Eficiência Econômica:</strong> Melhor farm (CS/min) e conversão em ouro</li>
+    <li><strong>Impacto no Dano:</strong> Maior % de dano da equipe</li>
+    </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("### Recomendações Específicas por Posição")
+    
+    position_recommendations = {
+        'Top': ['Controle de Lane e Teamfight', 'Focar no farm early game', 'Melhorar teleports'],
+        'Jungle': ['Map Control e Ganks', 'Maximizar presença no mapa', 'Coordenar objetivos'],
+        'Mid': ['Damage e Roaming', 'Balancear farm com fights', 'Melhorar wave management'],
+        'Adc': ['DPS e Posicionamento', 'Focar em positioning', 'Melhorar farm'],
+        'Support': ['Vision e Utility', 'Maximizar vision control', 'Melhorar roaming']
+    }
+    
+    selected_pos = st.selectbox("Selecione uma posição:", list(position_recommendations.keys()))
+    
+    if selected_pos:
+        recommendations = position_recommendations[selected_pos]
+        st.markdown(f"#### Recomendações para {selected_pos}:")
+        for rec in recommendations:
+            st.markdown(f"• {rec}")
+    
+    st.markdown("### Limitações do Estudo")
+    
+    st.markdown("""
+    <div class="warning-box">
+    <h4>Limitações Importantes:</h4>
+    <ul>
+    <li><strong>Dados Temporais:</strong> Análise baseada em snapshot</li>
+    <li><strong>Contexto de Patches:</strong> Mudanças no jogo podem afetar métricas</li>
+    <li><strong>Meta Game:</strong> Estratégias podem influenciar performance</li>
+    <li><strong>Fatores Externos:</strong> Coaching e ambiente não são considerados</li>
+    </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
