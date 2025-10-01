@@ -103,7 +103,6 @@ def preprocess_data(df):
         if col in data.columns:
             data[col] = pd.to_numeric(data[col], errors='coerce')
     
-    data['Kill_Death_Ratio'] = data['Avg kills'] / data['Avg deaths'].replace(0, 0.1)
     data['Efficiency_Score'] = (data['Avg kills'] + data['Avg assists']) / data['Avg deaths'].replace(0, 0.1)
     data['Economic_Efficiency'] = data['GoldPerMin'] / data['CSPerMin'].replace(0, 1)
     data['Early_Game_Advantage'] = (data['GD@15'] + data['CSD@15'] + data['XPD@15']) / 3
@@ -230,7 +229,7 @@ def show_exploratory_analysis(data, filtered_data):
     with col1:
         metric_for_outliers = st.selectbox(
             "Selecione uma métrica para análise de outliers:",
-            ['KDA', 'Win rate', 'DamagePercent', 'GoldPerMin', 'Avg kills']
+            ['KDA', 'DamagePercent', 'GoldPerMin', 'Avg kills']
         )
         
         fig = px.box(filtered_data, y=metric_for_outliers, x='Position',
@@ -242,11 +241,6 @@ def show_exploratory_analysis(data, filtered_data):
         IQR = Q3 - Q1
         lower_bound = Q1 - 1.5 * IQR
         upper_bound = Q3 + 1.5 * IQR
-        outliers = filtered_data[
-            (filtered_data[metric_for_outliers] < lower_bound) | 
-            (filtered_data[metric_for_outliers] > upper_bound)
-        ]
-        st.metric("Outliers Identificados", len(outliers))
     
     with col2:
         st.markdown("### Top Performers")
@@ -264,7 +258,7 @@ def show_exploratory_analysis(data, filtered_data):
     st.markdown("### Matriz de Correlação")
     
     correlation_metrics = ['Win rate', 'KDA', 'Avg kills', 'DamagePercent', 'GoldPerMin', 
-                          'KP%', 'CSPerMin', 'Kill_Death_Ratio', 'Performance_Score']
+                          'KP%', 'CSPerMin', 'Performance_Score']
     
     corr_matrix = filtered_data[correlation_metrics].corr()
     
@@ -289,7 +283,7 @@ def show_exploratory_analysis(data, filtered_data):
     st.markdown("### Análise por Posição")
     
     position_stats = filtered_data.groupby('Position')[
-        ['Win rate', 'KDA', 'DamagePercent', 'GoldPerMin', 'KP%']
+        ['KDA', 'DamagePercent', 'GoldPerMin', 'KP%']
     ].mean().round(3)
     
     st.dataframe(position_stats, use_container_width=True)
@@ -304,7 +298,7 @@ def show_exploratory_analysis(data, filtered_data):
     if selected_positions:
         fig = go.Figure()
         
-        metrics_radar = ['Win rate', 'KDA', 'DamagePercent', 'KP%', 'GoldPerMin']
+        metrics_radar = ['KDA', 'DamagePercent', 'KP%', 'GoldPerMin']
         
         for position in selected_positions:
             pos_data = filtered_data[filtered_data['Position'] == position]
@@ -370,7 +364,6 @@ def show_data_preparation(original_data, processed_data):
     st.markdown("### Engenharia de Variáveis")
     
     new_features = {
-        'Kill_Death_Ratio': 'Avg kills / Avg deaths (tratando divisão por zero)',
         'Efficiency_Score': '(Avg kills + Avg assists) / Avg deaths',
         'Economic_Efficiency': 'GoldPerMin / CSPerMin',
         'Early_Game_Advantage': 'Média de (GD@15 + CSD@15 + XPD@15) / 3',
@@ -382,37 +375,6 @@ def show_data_preparation(original_data, processed_data):
     
     features_df = pd.DataFrame(list(new_features.items()), columns=['Variável', 'Descrição'])
     st.dataframe(features_df, use_container_width=True)
-    
-    st.markdown("### Distribuição das Novas Variáveis")
-    
-    new_vars = ['Kill_Death_Ratio', 'Efficiency_Score', 'Performance_Score']
-    
-    fig = make_subplots(
-        rows=1, cols=3,
-        subplot_titles=new_vars,
-        specs=[[{"secondary_y": False}, {"secondary_y": False}, {"secondary_y": False}]]
-    )
-    
-    for i, var in enumerate(new_vars, 1):
-        fig.add_trace(
-            go.Histogram(x=processed_data[var], name=var, showlegend=False),
-            row=1, col=i
-        )
-    
-    fig.update_layout(title_text="Distribuições das Variáveis Criadas")
-    st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("### Qualidade dos Dados")
-    
-    quality_metrics = {
-        'Completude': f"{(processed_data.notna().sum().sum() / processed_data.size) * 100:.2f}%",
-        'Consistência': "Tipos de dados corrigidos e padronizados",
-        'Outliers': f"{len(processed_data)} registros analisados para outliers",
-        'Duplicatas': f"{processed_data.duplicated().sum()} duplicatas encontradas"
-    }
-    
-    quality_df = pd.DataFrame(list(quality_metrics.items()), columns=['Métrica', 'Status'])
-    st.dataframe(quality_df, use_container_width=True)
 
 def show_statistical_modeling(data, filtered_data):
     st.markdown('<h2 class="section-header">Modelagem Estatística</h2>', unsafe_allow_html=True)
@@ -431,14 +393,14 @@ def show_statistical_modeling(data, filtered_data):
         available_features = ['Avg kills', 'Avg deaths', 'Avg assists', 'GoldPerMin', 
                      'CSPerMin', 'KP%', 'DamagePercent', 'DPM', 'VSPM',
                      'Avg WPM', 'Avg WCPM', 'Avg VWPM', 'GD@15', 'CSD@15', 'XPD@15',
-                     'FB %', 'Penta Kills', 'Solo Kills', 'Kill_Death_Ratio', 
+                     'FB %', 'Penta Kills', 'Solo Kills', 'KDA', 
                      'Efficiency_Score', 'Team_Contribution', 'Economic_Efficiency',
                      'Early_Game_Advantage', 'Vision_Control', 'Games']
         
         selected_features = st.multiselect(
             "Variáveis Independentes:",
             available_features,
-            default=['Kill_Death_Ratio', 'GoldPerMin', 'KP%', 'DamagePercent']
+            default=['KDA', 'GoldPerMin', 'DamagePercent']
         )
     
     if not selected_features:
@@ -518,7 +480,7 @@ def show_statistical_modeling(data, filtered_data):
     X_sm = sm.add_constant(X)
     model_sm = sm.OLS(y, X_sm).fit()
 
-    tab1, tab2, tab3 = st.tabs(["📊 Resumo do Modelo", "📈 Coeficientes Detalhados", "🔬 Diagnósticos"])
+    tab1, tab2, tab3 = st.tabs(["Resumo do Modelo", "Coeficientes Detalhados", "Diagnósticos"])
 
     with tab1:
         col1, col2, col3 = st.columns(3)
@@ -539,7 +501,7 @@ def show_statistical_modeling(data, filtered_data):
             )
         
         with col3:
-            significance = "✅ Significativo" if model_sm.f_pvalue < 0.05 else "❌ Não significativo"
+            significance = "Significativo" if model_sm.f_pvalue < 0.05 else "Não significativo"
             st.metric(
                 label="P-value (F-test)",
                 value=f"{model_sm.f_pvalue:.4f}",
@@ -569,7 +531,7 @@ def show_statistical_modeling(data, filtered_data):
         coef_summary = coef_summary[coef_summary['Variável'] != 'const']
         
         coef_summary['Significativo'] = coef_summary['p-value'].apply(
-            lambda x: '✅ Sim' if x < 0.05 else '❌ Não'
+            lambda x: 'Sim' if x < 0.05 else 'Não'
         )
         
         st.dataframe(
@@ -595,33 +557,31 @@ def show_statistical_modeling(data, filtered_data):
         with col1:
             _, pvalue_bp, _, _ = het_breuschpagan(model_sm.resid, X_sm)
             
-            st.markdown("#### 🔍 Teste de Breusch-Pagan")
+            st.markdown("#### Teste de Breusch-Pagan")
             st.markdown(f"**P-value:** {pvalue_bp:.4f}")
             
             if pvalue_bp > 0.05:
-                st.success("✅ Homocedasticidade confirmada (variância constante)")
+                st.success("Homocedasticidade confirmada (variância constante)")
             else:
-                st.warning("⚠️ Heterocedasticidade detectada (variância não constante)")
+                st.warning("Heterocedasticidade detectada (variância não constante)")
         
         with col2:
-            # Teste de Normalidade dos Resíduos
             from scipy.stats import shapiro
             
-            if len(model_sm.resid) <= 5000:  # Shapiro só funciona bem com N < 5000
+            if len(model_sm.resid) <= 5000:
                 stat_shapiro, p_shapiro = shapiro(model_sm.resid)
                 
-                st.markdown("#### 📊 Teste de Normalidade (Shapiro-Wilk)")
+                st.markdown("#### Teste de Normalidade (Shapiro-Wilk)")
                 st.markdown(f"**P-value:** {p_shapiro:.4f}")
                 
                 if p_shapiro > 0.05:
-                    st.success("✅ Resíduos seguem distribuição normal")
+                    st.success("Resíduos seguem distribuição normal")
                 else:
-                    st.warning("⚠️ Resíduos não são normais (pode afetar intervalos de confiança)")
+                    st.warning("Resíduos não são normais (pode afetar intervalos de confiança)")
             else:
                 st.info("Dataset muito grande para teste de Shapiro-Wilk. Use Q-Q plot para avaliar normalidade.")
         
-        # Estatísticas adicionais
-        st.markdown("#### 📋 Estatísticas Adicionais")
+        st.markdown("#### Estatísticas Adicionais")
         
     
     st.markdown("### Fazer Predições")
@@ -642,7 +602,40 @@ def show_statistical_modeling(data, filtered_data):
             pred_input = np.array(list(pred_values.values())).reshape(1, -1)
             prediction = model.predict(pred_input)[0]
             
-            st.success(f"**Predição para {target_var}:** {prediction:.3f}")
+            if target_var == 'Win rate':
+                min_val, max_val = 0, 1
+                unit = "%"
+                multiplier = 100
+            elif target_var == 'Performance_Score':
+                min_val, max_val = 0, 1
+                unit = ""
+                multiplier = 1
+            elif target_var == 'KDA':
+                min_val, max_val = 0, 10
+                unit = ""
+                multiplier = 1
+            elif target_var == 'DamagePercent':
+                min_val, max_val = 0, 1
+                unit = "%"
+                multiplier = 100
+            
+            prediction_clipped = np.clip(prediction, min_val, max_val)
+            
+            if prediction < min_val or prediction > max_val:
+                st.warning(f"""
+                ⚠️ **Extrapolação Detectada:** O modelo previu **{prediction:.3f}**, mas esse valor 
+                está fora do range válido para {target_var} ({min_val}-{max_val}).
+                
+                A predição foi ajustada para **{prediction_clipped:.3f}**.
+                
+                **Por que isso acontece?** Os valores de entrada estão muito diferentes dos dados 
+                que o modelo viu durante o treinamento. Reduza ou aumente os valores nos sliders.
+                """)
+
+            if unit == "%":
+                st.success(f"**Predição para {target_var}:** {prediction_clipped*multiplier:.1f}%")
+            else:
+                st.success(f"**Predição para {target_var}:** {prediction_clipped:.3f}")
 
 def show_hypothesis_testing(data, filtered_data):
     st.markdown('<h2 class="section-header">Testes de Hipóteses</h2>', unsafe_allow_html=True)
@@ -819,65 +812,124 @@ def show_interactive_visualizations(data, filtered_data):
     st.markdown('<h2 class="section-header">Visualizações Interativas</h2>', unsafe_allow_html=True)
     
     st.markdown("### Explorador de Relações Multi-dimensional")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        x_var = st.selectbox("Eixo X:", 
-                           ['KDA', 'Win rate', 'DamagePercent', 'GoldPerMin', 'Performance_Score'])
-    with col2:
-        y_var = st.selectbox("Eixo Y:", 
-                           ['Win rate', 'KDA', 'DamagePercent', 'GoldPerMin', 'Performance_Score'])
-    with col3:
-        size_var = st.selectbox("Tamanho:", 
-                              ['Games', 'KP%', 'CSPerMin', 'Avg kills'])
-    with col4:
-        color_var = st.selectbox("Cor:", 
-                               ['Position', 'Performance_Tier', 'Country'])
-    
-    fig = px.scatter(
-        filtered_data, 
-        x=x_var, 
-        y=y_var,
-        size=size_var,
-        color=color_var,
-        hover_data=['PlayerName', 'TeamName', 'Position', 'Win rate', 'KDA'],
-        title=f"{y_var} vs {x_var} (tamanho: {size_var}, cor: {color_var})",
-        width=800,
-        height=600
-    )
-    
-    fig.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
-    st.plotly_chart(fig, use_container_width=True)
+
+    viz_type = st.radio("Tipo de visualização:", ["Scatter Plot", "Top Performers", "Comparação por Grupo"])
+
+    if viz_type == "Scatter Plot":
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            x_var = st.selectbox("Eixo X:", 
+                            ['KDA', 'Win rate', 'DamagePercent', 'GoldPerMin', 'Performance_Score'])
+        with col2:
+            y_var = st.selectbox("Eixo Y:", 
+                            ['Win rate', 'KDA', 'DamagePercent', 'GoldPerMin', 'Performance_Score'])
+        with col3:
+            color_var = st.selectbox("Cor:", 
+                                ['Position', 'Performance_Tier'])
+        
+        fig = px.scatter(
+            filtered_data, 
+            x=x_var, 
+            y=y_var,
+            color=color_var,
+            hover_data=['PlayerName', 'TeamName', 'Win rate', 'KDA'],
+            title=f"{y_var} vs {x_var}",
+            opacity=0.7
+        )
+        
+        fig.update_traces(marker=dict(size=8))
+        st.plotly_chart(fig, use_container_width=True)
+
+    elif viz_type == "Top Performers":
+        metric = st.selectbox("Métrica para ranking:", 
+                            ['Performance_Score', 'Win rate', 'KDA', 'DamagePercent'])
+        top_n = st.slider("Mostrar top:", 5, 20, 10)
+        
+        top_data = filtered_data.nlargest(top_n, metric)[['PlayerName', 'TeamName', 'Position', metric]]
+        
+        fig = px.bar(
+            top_data, 
+            x=metric, 
+            y='PlayerName',
+            color='Position',
+            orientation='h',
+            title=f"Top {top_n} Jogadores por {metric}",
+            hover_data=['TeamName']
+        )
+        fig.update_layout(yaxis={'categoryorder':'total ascending'})
+        st.plotly_chart(fig, use_container_width=True)
+
+    else: 
+        group_by = st.selectbox("Agrupar por:", ['Position', 'Performance_Tier'])
+        metrics = st.multiselect("Métricas:", 
+                                ['Win rate', 'KDA', 'DamagePercent', 'GoldPerMin'],
+                                default=['Win rate', 'KDA'])
+        
+        grouped = filtered_data.groupby(group_by)[metrics].mean().reset_index()
+        
+        fig = px.bar(
+            grouped, 
+            x=group_by, 
+            y=metrics,
+            barmode='group',
+            title=f"Comparação de Métricas por {group_by}"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
     
     st.markdown("### Mapa de Calor: Performance por Time")
-    
-    team_stats = filtered_data.groupby('TeamName').agg({
-        'Win rate': 'mean',
-        'KDA': 'mean',
-        'DamagePercent': 'mean',
-        'GoldPerMin': 'mean',
-        'Performance_Score': 'mean'
-    }).round(3)
-    
-    team_stats_normalized = (team_stats - team_stats.min()) / (team_stats.max() - team_stats.min())
-    
-    fig = px.imshow(
-        team_stats_normalized.T,
-        x=team_stats_normalized.index,
-        y=team_stats_normalized.columns,
-        color_continuous_scale='RdYlBu_r',
-        title="Performance Normalizada por Time",
-        aspect='auto'
-    )
-    
-    fig.update_layout(
-        xaxis_title="Times",
-        yaxis_title="Métricas",
-        height=500
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+    team_counts = filtered_data['TeamName'].value_counts()
+    valid_teams = team_counts[team_counts >= 2].index
+    filtered_teams = filtered_data[filtered_data['TeamName'].isin(valid_teams)]
+
+    if len(valid_teams) < 2:
+        st.warning("Dados insuficientes. Ajuste os filtros para incluir mais times.")
+    else:
+        team_stats = filtered_teams.groupby('TeamName').agg({
+            'Win rate': 'mean',
+            'KDA': 'mean',
+            'DamagePercent': 'mean',
+            'GoldPerMin': 'mean',
+            'Performance_Score': 'mean'
+        }).round(3)
+        
+        team_stats_normalized = team_stats.copy()
+        for col in team_stats.columns:
+            min_val = team_stats[col].min()
+            max_val = team_stats[col].max()
+            
+            if max_val - min_val > 0:
+                team_stats_normalized[col] = (team_stats[col] - min_val) / (max_val - min_val)
+            else:
+                team_stats_normalized[col] = 0.5 
+        
+        if len(team_stats_normalized) > 15:
+            team_stats_normalized = team_stats_normalized.nlargest(15, 'Performance_Score')
+        
+        fig = px.imshow(
+            team_stats_normalized.T,
+            x=team_stats_normalized.index,
+            y=team_stats_normalized.columns,
+            color_continuous_scale='RdYlGn',
+            title="Performance Normalizada por Time (0 = pior, 1 = melhor)",
+            aspect='auto',
+            labels=dict(color="Score Normalizado")
+        )
+        
+        fig.update_layout(
+            xaxis_title="Times",
+            yaxis_title="Métricas",
+            height=500,
+            xaxis={'tickangle': -45}
+        )
+        
+        fig.update_traces(text=team_stats_normalized.T.round(2), texttemplate='%{text}')
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        with st.expander("Ver valores originais (não normalizados)"):
+            st.dataframe(team_stats.style.background_gradient(cmap='RdYlGn'), use_container_width=True)
 
 def show_practical_solutions(data, filtered_data):
     st.markdown('<h2 class="section-header">Soluções Práticas e Recomendações</h2>', unsafe_allow_html=True)
@@ -898,7 +950,7 @@ def show_practical_solutions(data, filtered_data):
         if corr_p_value < 0.05:
             st.markdown(f"""
             <div class="insight-box">
-            <h4>✅ Evidência Estatística Confirmada</h4>
+            <h4>Evidência Estatística Confirmada</h4>
             <p><strong>Correlação KDA-Win Rate:</strong> {corr_coef:.3f} (p = {corr_p_value:.4f})</p>
             <p><strong>Recomendação Prática:</strong> O teste confirma que melhorar o KDA tem impacto 
             direto no Win Rate. Priorize estratégias de sobrevivência e participação em kills.</p>
@@ -927,140 +979,425 @@ def show_practical_solutions(data, filtered_data):
         else:
             st.markdown(f"""
             <div class="warning-box">
-            <h4>⚠️ Correlação Não Significativa</h4>
+            <h4>Correlação Não Significativa</h4>
             <p>A correlação entre KDA e Win Rate não é estatisticamente significativa 
             (p = {corr_p_value:.4f}). Outras variáveis podem ser mais importantes.</p>
             </div>
             """, unsafe_allow_html=True)
     
     st.markdown("#### 2. Diferenças entre Posições: Estratégias Personalizadas")
-    
+
     positions = list(filtered_data['Position'].unique())
-    
+
     if len(positions) >= 2:
         st.markdown("**Análise de Significância entre Posições:**")
         
-        position_matrix = []
-        for i, pos1 in enumerate(positions):
-            row = []
-            for j, pos2 in enumerate(positions):
-                if i != j:
-                    data_pos1 = filtered_data[filtered_data['Position'] == pos1]['Performance_Score'].dropna()
-                    data_pos2 = filtered_data[filtered_data['Position'] == pos2]['Performance_Score'].dropna()
-                    
-                    if len(data_pos1) > 1 and len(data_pos2) > 1:
-                        _, p_value = stats.ttest_ind(data_pos1, data_pos2)
-                        row.append(p_value)
-                    else:
-                        row.append(1.0)
-                else:
-                    row.append(0.0)
-            position_matrix.append(row)
-        
-        position_stats = filtered_data.groupby('Position')['Performance_Score'].agg(['mean', 'std']).round(3)
+        position_stats = filtered_data.groupby('Position')['Performance_Score'].agg(['mean', 'std', 'count']).round(3)
         position_stats = position_stats.sort_values('mean', ascending=False)
         
         st.dataframe(position_stats, use_container_width=True)
         
         st.markdown(f"""
         <div class="insight-box">
-        <h4>🎯 Recomendações por Ranking de Performance</h4>
-        <p><strong>Posição com Melhor Performance:</strong> {position_stats.index[0]} (Score: {position_stats.iloc[0]['mean']:.3f})</p>
-        <p><strong>Maior Oportunidade de Melhoria:</strong> {position_stats.index[-1]} (Score: {position_stats.iloc[-1]['mean']:.3f})</p>
-        <p><strong>Estratégia:</strong> Estudar as práticas da posição com melhor performance e adaptar 
-        para as posições com menor score.</p>
+        <h4>Ranking de Performance por Posição</h4>
+        <p><strong>Melhor Performance:</strong> {position_stats.index[0]} (Score: {position_stats.iloc[0]['mean']:.3f})</p>
+        <p><strong>Maior Oportunidade:</strong> {position_stats.index[-1]} (Score: {position_stats.iloc[-1]['mean']:.3f})</p>
         </div>
         """, unsafe_allow_html=True)
         
-        selected_pos = st.selectbox("Selecione uma posição para recomendações detalhadas:", positions)
+        selected_pos = st.selectbox(
+            "Selecione uma posição para análise detalhada:", 
+            positions,
+            help="Cada posição tem métricas-chave específicas"
+        )
         
         if selected_pos:
-            pos_performance = position_stats.loc[selected_pos, 'mean']
-            best_performance = position_stats.iloc[0]['mean']
-            gap = best_performance - pos_performance
+            position_metrics = {
+                'Top': {
+                    'key_metrics': ['CSPerMin', 'GD@15', 'CSD@15', 'KP%', 'Solo Kills'],
+                    'description': 'Controle de Lane e Impacto em Teamfights',
+                    'priorities': [
+                        'Maximizar farm early game para vantagem de itens',
+                        'Melhorar gestão de wave para evitar ganks',
+                        'Participar de teamfights com TPs estratégicos',
+                        'Desenvolver profundidade de champion pool'
+                    ]
+                },
+                'Jungle': {
+                    'key_metrics': ['Early_Game_Advantage', 'Team_Contribution', 'KP%', 'VSPM', 'GD@15'],
+                    'description': 'Map Control e Presença Global',
+                    'priorities': [
+                        'Otimizar pathing e clear speed',
+                        'Maximizar presença em objetivos (Dragon/Herald)',
+                        'Coordenar ganks com timing de power spikes',
+                        'Melhorar vision control e deep warding'
+                    ]
+                },
+                'Mid': {
+                    'key_metrics': ['DamagePercent', 'KP%', 'CSPerMin', 'CSD@15', 'GoldPerMin'],
+                    'description': 'Damage Output e Roaming',
+                    'priorities': [
+                        'Balancear farm com participação em skirmishes',
+                        'Melhorar wave management para roams',
+                        'Maximizar damage em teamfights',
+                        'Coordenar com jungle para vision e ganks'
+                    ]
+                },
+                'Adc': {
+                    'key_metrics': ['DamagePercent', 'DPM', 'CSPerMin', 'GoldPerMin', 'KDA'],
+                    'description': 'DPS Sustentado e Positioning',
+                    'priorities': [
+                        'Focar em positioning para maximizar uptime de DPS',
+                        'Melhorar CS e eficiência econômica',
+                        'Coordenar com support para lane dominance',
+                        'Desenvolver decision making em teamfights'
+                    ]
+                },
+                'Support': {
+                    'key_metrics': ['KP%', 'Avg assists', 'VSPM', 'Avg WPM', 'Avg WCPM', 'Vision_Control'],
+                    'description': 'Vision Control e Utility',
+                    'priorities': [
+                        'Maximizar vision score e controle de mapa',
+                        'Melhorar roaming e map presence',
+                        'Coordenar engages e disengages',
+                        'Otimizar uso de wards e sweeper'
+                    ]
+                }
+            }
             
-            if gap > 0.05:
-                st.markdown(f"""
-                <div class="warning-box">
-                <h4>📈 Plano de Melhoria para {selected_pos}</h4>
-                <p><strong>Gap de Performance:</strong> {gap:.3f} pontos abaixo do líder</p>
-                <p><strong>Meta:</strong> Reduzir o gap focando nas métricas que mais impactam o Performance Score</p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
+            pos_key = selected_pos
+            if selected_pos not in position_metrics:
+                for key in position_metrics.keys():
+                    if key.lower().startswith(selected_pos.lower()[:3]):
+                        pos_key = key
+                        break
+            
+            if pos_key in position_metrics:
+                pos_info = position_metrics[pos_key]
+                
                 st.markdown(f"""
                 <div class="insight-box">
-                <h4>✅ Performance Competitiva para {selected_pos}</h4>
-                <p>Performance próxima ao líder. Foque em manter consistência.</p>
+                <h4>{pos_key}: {pos_info['description']}</h4>
                 </div>
                 """, unsafe_allow_html=True)
-    
-    st.markdown("#### 3. Plano de Ação Estatisticamente Fundamentado")
-    
-    performance_metrics = ['KDA', 'Win rate', 'DamagePercent', 'KP%', 'GoldPerMin', 'CSPerMin']
-    correlations_with_performance = []
-    
-    for metric in performance_metrics:
-        if metric in filtered_data.columns:
-            corr, p_val = stats.pearsonr(filtered_data[metric].dropna(), 
-                                       filtered_data['Performance_Score'].dropna())
-            correlations_with_performance.append({
-                'Métrica': metric,
-                'Correlação': corr,
-                'P-value': p_val,
-                'Significativo': p_val < 0.05,
-                'Prioridade': 'Alta' if abs(corr) > 0.5 and p_val < 0.05 else 
-                             'Média' if abs(corr) > 0.3 and p_val < 0.05 else 'Baixa'
-            })
-    
-    priority_df = pd.DataFrame(correlations_with_performance)
-    priority_df = priority_df.sort_values('Correlação', key=abs, ascending=False)
-    
-    st.markdown("**Priorização de Métricas (baseada em correlação estatística):**")
-    st.dataframe(priority_df.round(3), use_container_width=True)
-    
-    high_priority_metrics = priority_df[priority_df['Prioridade'] == 'Alta']['Métrica'].tolist()
-    
-    if high_priority_metrics:
-        st.markdown(f"""
-        <div class="insight-box">
-        <h4>🎯 Métricas de Alta Prioridade para Melhoria</h4>
-        <p>Baseado na análise estatística, foque em melhorar:</p>
-        <ul>
-        {''.join([f'<li><strong>{metric}</strong></li>' for metric in high_priority_metrics])}
-        </ul>
-        <p>Essas métricas têm correlação estatisticamente significativa com a performance geral.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("#### 4. Monitoramento e Validação")
 
-    st.markdown("""
-    <div class="insight-box">
-    <h4>Sistema de Acompanhamento Sugerido</h4>
-    <ul>
-    <li><strong>Métricas Semanais:</strong> Acompanhar as variáveis de alta prioridade identificadas</li>
-    <li><strong>Testes A/B:</strong> Implementar mudanças graduais e medir impacto</li>
-    <li><strong>Intervalos de Confiança:</strong> Definir metas baseadas nos ICs calculados</li>
-    <li><strong>Significância Estatística:</strong> Validar melhorias com testes de hipótese</li>
-    </ul>
-    </div>
-    """, unsafe_allow_html=True)
-        
-    st.markdown("### Limitações e Considerações Estatísticas")
+                st.markdown(f"**Métricas-Chave para {pos_key}:**")
+                
+                pos_data = filtered_data[filtered_data['Position'] == selected_pos]
+                
+                available_metrics = [m for m in pos_info['key_metrics'] if m in pos_data.columns]
+                
+                if available_metrics:
+                    metrics_analysis = []
+                    for metric in available_metrics:
+                        metric_data = pos_data[metric].dropna()
+                        if len(metric_data) > 0:
+                            q25 = metric_data.quantile(0.25)
+                            q50 = metric_data.quantile(0.50)
+                            q75 = metric_data.quantile(0.75)
+                            mean = metric_data.mean()
+                            
+                            metrics_analysis.append({
+                                'Métrica': metric,
+                                'Média': f"{mean:.3f}",
+                                'Q1 (25%)': f"{q25:.3f}",
+                                'Mediana': f"{q50:.3f}",
+                                'Q3 (75%)': f"{q75:.3f}"
+                            })
+                    
+                    if metrics_analysis:
+                        metrics_df = pd.DataFrame(metrics_analysis)
+                        st.dataframe(metrics_df, use_container_width=True)
+                        
+                        st.markdown("""
+                        <div class="insight-box">
+                        <p><strong>Como interpretar:</strong></p>
+                        <ul>
+                        <li><strong>Q1 (25%):</strong> Bottom performers - necessita melhoria urgente</li>
+                        <li><strong>Mediana:</strong> Performance padrão da posição</li>
+                        <li><strong>Q3 (75%):</strong> Top performers - benchmark a atingir</li>
+                        </ul>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
+                st.markdown(f"**Prioridades de Treinamento para {pos_key}:**")
+                
+                for i, priority in enumerate(pos_info['priorities'], 1):
+                    st.markdown(f"{i}. {priority}")
+                
+                pos_performance = position_stats.loc[selected_pos, 'mean']
+                overall_mean = filtered_data['Performance_Score'].mean()
+                gap = pos_performance - overall_mean
+                
+                if gap > 0.05:
+                    st.markdown(f"""
+                    <div class="insight-box">
+                    <h4>Performance Acima da Média</h4>
+                    <p>{pos_key} está {gap:.3f} pontos <strong>acima</strong> da média geral ({overall_mean:.3f})</p>
+                    <p><strong>Estratégia:</strong> Manter excelência focando em consistência nas métricas-chave</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif gap < -0.05:
+                    st.markdown(f"""
+                    <div class="warning-box">
+                    <h4>Oportunidade de Melhoria</h4>
+                    <p>{pos_key} está {abs(gap):.3f} pontos <strong>abaixo</strong> da média geral ({overall_mean:.3f})</p>
+                    <p><strong>Meta:</strong> Focar intensivamente nas métricas-chave listadas acima</p>
+                    <p><strong>Benchmark:</strong> Atingir pelo menos o Q3 (75%) em cada métrica prioritária</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="insight-box">
+                    <h4>Performance Equilibrada</h4>
+                    <p>{pos_key} está próximo da média geral (diferença: {gap:+.3f})</p>
+                    <p><strong>Estratégia:</strong> Identificar 1-2 métricas-chave para elevar ao nível Q3</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                other_positions_data = filtered_data[filtered_data['Position'] != selected_pos]['Performance_Score'].dropna()
+                this_position_data = filtered_data[filtered_data['Position'] == selected_pos]['Performance_Score'].dropna()
+                
+                if len(this_position_data) > 1 and len(other_positions_data) > 1:
+                    t_stat, p_value = stats.ttest_ind(this_position_data, other_positions_data)
+                    
+                    st.markdown("**Teste Estatístico: Diferença vs Outras Posições**")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric(f"Média {selected_pos}", f"{this_position_data.mean():.3f}")
+                    with col2:
+                        st.metric("Média Outras Posições", f"{other_positions_data.mean():.3f}")
+                    
+                    if p_value < 0.05:
+                        st.success(f"Diferença estatisticamente significativa (p = {p_value:.4f})")
+                    else:
+                        st.info(f"Sem diferença estatística significativa (p = {p_value:.4f})")
+            
+            else:
+                st.warning(f"Métricas específicas não disponíveis para {selected_pos}")
     
-    st.markdown("""
-    <div class="warning-box">
-    <h4>⚠️ Limitações dos Testes de Hipóteses:</h4>
-    <ul>
-    <li><strong>Correlação ≠ Causalidade:</strong> Relações estatísticas não implicam causa-efeito</li>
-    <li><strong>Tamanho da Amostra:</strong> Resultados dependem do número de observações</li>
-    <li><strong>Suposições dos Testes:</strong> Normalidade e homogeneidade de variâncias</li>
-    <li><strong>Múltiplas Comparações:</strong> Risco de falsos positivos em testes múltiplos</li>
-    <li><strong>Contexto Temporal:</strong> Dados podem não refletir mudanças recentes do jogo</li>
-    </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### Análise Comparativa: Times Elite vs Times em Desenvolvimento")
+
+    elite_teams = ['T1', 'Gen.G', 'JDG', 'BLG', 'G2 Esports'] 
+    developing_teams = ['PaiN Gaming', 'MAD Lions KOI', 'PSG Talon']
+    
+    available_teams = filtered_data['TeamName'].unique()
+    
+    elite_available = [team for team in elite_teams if team in available_teams]
+    developing_available = [team for team in developing_teams if team in available_teams]
+    
+    if len(elite_available) > 0 and len(developing_available) > 0:
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            selected_elite = st.selectbox(
+                "Time Elite (alta performance):",
+                elite_available,
+                index=0 if len(elite_available) > 0 else None
+            )
+        
+        with col2:
+            selected_developing = st.selectbox(
+                "Time em Desenvolvimento:",
+                developing_available,
+                index=0 if len(developing_available) > 0 else None
+            )
+        
+        if selected_elite and selected_developing:
+            
+            elite_data = filtered_data[filtered_data['TeamName'] == selected_elite]
+            developing_data = filtered_data[filtered_data['TeamName'] == selected_developing]
+            
+            key_metrics = ['Win rate', 'KDA', 'DamagePercent', 'KP%', 'GoldPerMin', 'CSPerMin', 'Performance_Score']
+            
+            elite_stats = elite_data[key_metrics].mean()
+            developing_stats = developing_data[key_metrics].mean()
+            gap_analysis = elite_stats - developing_stats
+            
+            st.markdown(f"#### 📊 Comparação: {selected_elite} vs {selected_developing}")
+            
+            comparison_detailed = pd.DataFrame({
+                f'{selected_elite} (Elite)': elite_stats.round(3),
+                f'{selected_developing} (Desenvolvimento)': developing_stats.round(3),
+                'Gap Absoluto': gap_analysis.round(3),
+                'Gap Percentual (%)': ((gap_analysis / developing_stats) * 100).round(1),
+                'Prioridade': ['🔴 CRÍTICA' if abs(gap) > developing_stats.loc[metric] * 0.2 
+                              else '🟡 ALTA' if abs(gap) > developing_stats.loc[metric] * 0.1 
+                              else '🟢 BAIXA' for metric, gap in gap_analysis.items()]
+            })
+            
+            st.dataframe(comparison_detailed, use_container_width=True)
+            
+            critical_gaps = comparison_detailed[comparison_detailed['Prioridade'] == '🔴 CRÍTICA']
+            high_gaps = comparison_detailed[comparison_detailed['Prioridade'] == '🟡 ALTA']
+            
+            if len(critical_gaps) > 0:
+                st.markdown(f"""
+                <div class="warning-box">
+                <h4> GAPS CRÍTICOS IDENTIFICADOS</h4>
+                <p><strong>Métricas com maior discrepância (>20%):</strong></p>
+                <ul>
+                {''.join([f'<li><strong>{metric}:</strong> {row["Gap Percentual (%)"]}% de diferença</li>' 
+                         for metric, row in critical_gaps.iterrows()])}
+                </ul>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("#### Análise por Posição: Onde Melhorar Primeiro")
+            
+            position_comparison = []
+            for position in ['Top', 'Jungle', 'Mid', 'Adc', 'Support']:
+                elite_pos = elite_data[elite_data['Position'] == position]['Performance_Score'].mean()
+                dev_pos = developing_data[developing_data['Position'] == position]['Performance_Score'].mean()
+                
+                if not pd.isna(elite_pos) and not pd.isna(dev_pos):
+                    position_comparison.append({
+                        'Posição': position,
+                        'Elite Score': elite_pos,
+                        'Desenvolvimento Score': dev_pos,
+                        'Gap': elite_pos - dev_pos,
+                        'Gap %': ((elite_pos - dev_pos) / dev_pos * 100) if dev_pos != 0 else 0
+                    })
+            
+            if position_comparison:
+                pos_df = pd.DataFrame(position_comparison).round(3)
+                
+                pos_df['Gap_Abs'] = pos_df['Gap'].abs()
+                pos_df = pos_df.sort_values('Gap_Abs', ascending=False)
+                
+                st.dataframe(pos_df[['Posição', 'Elite Score', 'Desenvolvimento Score', 'Gap', 'Gap %']], use_container_width=True)
+
+                worst_position = pos_df.iloc[0]['Posição'] if len(pos_df) > 0 else None
+                worst_gap_pct = pos_df.iloc[0]['Gap %'] if len(pos_df) > 0 else 0
+                
+                best_position = pos_df.iloc[-1]['Posição'] if len(pos_df) > 0 else None
+                best_gap_pct = pos_df.iloc[-1]['Gap %'] if len(pos_df) > 0 else 0
+                
+                if worst_position:
+                    st.markdown(f"""
+                    <div class="insight-box">
+                    <h4>Plano de Desenvolvimento Prioritário</h4>
+                    <p><strong>Posição com MAIOR Gap:</strong> {worst_position} ({abs(worst_gap_pct):.1f}% de diferença)</p>
+                    <p><strong>Posição com MENOR Gap:</strong> {best_position} ({abs(best_gap_pct):.1f}% de diferença)</p>
+                    
+                    <p><strong>Interpretação:</strong></p>
+                    <ul>
+                    <li><strong>{worst_position}:</strong> {'Time elite está muito à frente' if pos_df.iloc[0]['Gap'] > 0 else 'Time desenvolvimento surpreendentemente melhor'}</li>
+                    <li><strong>{best_position}:</strong> Posição mais equilibrada entre os times</li>
+                    </ul>
+                    
+                    <p><strong>Estratégia Recomendada:</strong></p>
+                    <ul>
+                    <li>Focar recursos de coaching na posição {worst_position} (maior prioridade)</li>
+                    <li>Estudar replays dos melhores jogadores {worst_position} dos times elite</li>
+                    <li>Usar {best_position} como exemplo de processo de desenvolvimento eficaz</li>
+                    </ul>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+
+            st.markdown("#### Soluções Específicas Baseadas nos Dados")
+            
+            solutions = []
+            
+            winrate_gap = gap_analysis.get('Win rate', 0)
+            if winrate_gap > 0.1:
+                solutions.append({
+                    'Problema': 'Win Rate Baixo',
+                    'Gap': f'{winrate_gap:.3f} ({(winrate_gap/developing_stats["Win rate"]*100):.1f}%)',
+                    'Causa Raiz': 'Decisões táticas e teamplay',
+                    'Solução Imediata': 'Melhorar comunicação e shot-calling',
+                    'Solução Longo Prazo': 'Investir em analista dedicado para review de jogos'
+                })
+            
+            kda_gap = gap_analysis.get('KDA', 0)
+            if kda_gap > 0.5:
+                solutions.append({
+                    'Problema': 'KDA Baixo',
+                    'Gap': f'{kda_gap:.3f} ({(kda_gap/developing_stats["KDA"]*100):.1f}%)',
+                    'Causa Raiz': 'Positioning e sobrevivência em fights',
+                    'Solução Imediata': 'Treinar positioning específico por role',
+                    'Solução Longo Prazo': 'Bootcamp focado em teamfights'
+                })
+            
+            gold_gap = gap_analysis.get('GoldPerMin', 0)
+            cs_gap = gap_analysis.get('CSPerMin', 0)
+            if gold_gap > 50 or cs_gap > 0.5:
+                solutions.append({
+                    'Problema': 'Eficiência Econômica',
+                    'Gap': f'Gold: {gold_gap:.0f}/min, CS: {cs_gap:.2f}/min',
+                    'Causa Raiz': 'Farm pattern e wave management',
+                    'Solução Imediata': 'Drill de last-hitting e wave control',
+                    'Solução Longo Prazo': 'Coach específico para macro game'
+                })
+
+            kp_gap = gap_analysis.get('KP%', 0)
+            if kp_gap > 5:
+                solutions.append({
+                    'Problema': 'Baixa Participação em Kills',
+                    'Gap': f'{kp_gap:.1f}%',
+                    'Causa Raiz': 'Coordenação e map movement',
+                    'Solução Imediata': 'Melhorar rotações e timings',
+                    'Solução Longo Prazo': 'Sistema de comunicação padronizado'
+                })
+            
+            if solutions:
+                solutions_df = pd.DataFrame(solutions)
+                st.dataframe(solutions_df, use_container_width=True)
+                
+                st.markdown("#### Timeline de Implementação Sugerido")
+                
+                st.markdown("""
+                <div class="insight-box">
+                <h4>Ações Imediatas (1-2 semanas)</h4>
+                <ul>
+                <li>Identificar os 2 gaps mais críticos da tabela acima</li>
+                <li>Implementar drills específicos para essas áreas</li>
+                <li>Estabelecer métricas de acompanhamento semanal</li>
+                </ul>
+                
+                <h4>Médio Prazo (1-2 meses)</h4>
+                <ul>
+                <li>Contratar especialistas para as áreas identificadas</li>
+                <li>Implementar sistema de análise de replays estruturado</li>
+                <li>Estabelecer parcerias para scrimmages focadas</li>
+                </ul>
+                
+                <h4>Longo Prazo (3-6 meses)</h4>
+                <ul>
+                <li>Reestruturação completa do staff técnico se necessário</li>
+                <li>Investimento em infraestrutura de análise de dados</li>
+                <li>Programa de intercâmbio com times de regiões mais fortes</li>
+                </ul>
+                </div>
+                """, unsafe_allow_html=True)
+                
+
+                total_gap = comparison_detailed['Gap Percentual (%)'].abs().mean()
+                st.markdown(f"""
+                <div class="warning-box">
+                <h4>ROI Esperado</h4>
+                <p><strong>Gap Médio Atual:</strong> {total_gap:.1f}%</p>
+                <p><strong>Meta de Melhoria (6 meses):</strong> Reduzir gap para <5%</p>
+                <p><strong>Indicadores de Sucesso:</strong></p>
+                <ul>
+                <li>Win Rate: +{winrate_gap*0.7:.2f} (70% do gap atual)</li>
+                <li>Performance Score: +{gap_analysis.get('Performance_Score', 0)*0.6:.3f}</li>
+                </ul>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        else:
+            st.info("Selecione um time de cada categoria para realizar a análise comparativa.")
+    
+    else:
+        available_teams_list = ", ".join(available_teams[:10])
+        st.info(f"Times disponíveis no dataset atual: {available_teams_list}...")
+        st.warning("Ajuste os filtros para incluir mais times ou verifique os nomes dos times no dataset.")
+
 
 if __name__ == "__main__":
     main()
