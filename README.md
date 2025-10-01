@@ -189,66 +189,12 @@ http://localhost:8501
 - **Causalidade**: Correlações não implicam relações causais
 - **Fatores Externos**: Coaching e ambiente de equipe não considerados
 
-## 🔮 Próximos Passos
-
-1. **Dados Longitudinais**: Múltiplas temporadas
-2. **Meta Game**: Incluir picks, bans e estratégias
-3. **Métricas Avançadas**: Positioning e micro-decisions
-4. **Machine Learning**: Modelos mais complexos (Random Forest, XGBoost)
-5. **Tempo Real**: Sistema de monitoramento contínuo
-6. **A/B Testing**: Validação experimental das recomendações
-
-## 👥 Autor
+## 👥 Autores
 
 **Rafael Ferreira** - Análise de Dados e Estatística  
-📧 Email: [rafael@example.com]  
+📧 Email: [rafabf18@gmail.com]  
 🔗 GitHub: [@RafaelFerreira18](https://github.com/RafaelFerreira18)
 
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
-
----
-
-## 🏆 Avaliação do Projeto
-
-Este projeto atende aos seguintes critérios de avaliação:
-
-### ✅ Exploração e Análise dos Dados (100%)
-- Análise detalhada com identificação completa de padrões, outliers e tendências
-- Interpretação crítica com insights acionáveis
-
-### ✅ Preparação e Limpeza dos Dados (100%)  
-- Dados totalmente limpos e preparados
-- Tratamento justificado e documentado
-- Engenharia de variáveis fundamentada
-
-### ✅ Modelagem Estatística e Regressão Linear (100%)
-- Modelagem bem fundamentada com análise profunda
-- Discussão de limitações e melhorias
-- Validação estatística rigorosa
-
-### ✅ Testes de Hipóteses e Intervalos de Confiança (100%)
-- Testes bem justificados e interpretados
-- Uso crítico de intervalos de confiança
-- Discussão de limitações estatísticas
-
-### ✅ Desenvolvimento de Soluções Práticas (100%)
-- Soluções detalhadas e bem fundamentadas
-- Clara conexão entre insights e ações sugeridas
-- Validação através de evidências estatísticas
-
-### ✅ Visualização de Dados e Dashboard (100%)
-- Dashboard interativo, intuitivo e atraente
-- Integração completa das análises
-- Funcionalidades avançadas de exploração
-
-### ✅ Apresentação e Comunicação (100%)
-- Comunicação impactante com lógica clara
-- Uso eficaz do dashboard
-- Documentação completa e profissional
-
----
-
-*Dashboard disponível em: http://localhost:8501*  
-*Notebook completo: `analise_completa.ipynb`*
+**** - Análise de Dados e Estatística  
+📧 Email: [pauloricardoctec@gmail.com]  
+🔗 GitHub: [@PauloRCunhaDev](https://github.com/PauloRCunhaDev)
