@@ -429,8 +429,11 @@ def show_statistical_modeling(data, filtered_data):
     
     with col2:
         available_features = ['Avg kills', 'Avg deaths', 'Avg assists', 'GoldPerMin', 
-                             'CSPerMin', 'KP%', 'DamagePercent', 'Kill_Death_Ratio', 
-                             'Efficiency_Score', 'Team_Contribution']
+                     'CSPerMin', 'KP%', 'DamagePercent', 'DPM', 'VSPM',
+                     'Avg WPM', 'Avg WCPM', 'Avg VWPM', 'GD@15', 'CSD@15', 'XPD@15',
+                     'FB %', 'Penta Kills', 'Solo Kills', 'Kill_Death_Ratio', 
+                     'Efficiency_Score', 'Team_Contribution', 'Economic_Efficiency',
+                     'Early_Game_Advantage', 'Vision_Control', 'Games']
         
         selected_features = st.multiselect(
             "Variáveis Independentes:",
@@ -511,25 +514,115 @@ def show_statistical_modeling(data, filtered_data):
         st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("### Análise Estatística Detalhada")
-    
+
     X_sm = sm.add_constant(X)
     model_sm = sm.OLS(y, X_sm).fit()
-    
-    st.text(str(model_sm.summary()))
-    
-    _, pvalue_bp, _, _ = het_breuschpagan(model_sm.resid, X_sm)
-    
-    st.markdown(f"""
-    <div class="insight-box">
-    <h4>Diagnóstico do Modelo:</h4>
-    <ul>
-    <li><strong>R²:</strong> {model_sm.rsquared:.3f} - Explica {model_sm.rsquared*100:.1f}% da variância</li>
-    <li><strong>R² Ajustado:</strong> {model_sm.rsquared_adj:.3f}</li>
-    <li><strong>F-statistic:</strong> {model_sm.fvalue:.2f} (p-value: {model_sm.f_pvalue:.4f})</li>
-    <li><strong>Teste Breusch-Pagan:</strong> p-value = {pvalue_bp:.4f} {'(Homocedasticidade)' if pvalue_bp > 0.05 else '(Heterocedasticidade detectada)'}</li>
-    </ul>
-    </div>
-    """, unsafe_allow_html=True)
+
+    tab1, tab2, tab3 = st.tabs(["📊 Resumo do Modelo", "📈 Coeficientes Detalhados", "🔬 Diagnósticos"])
+
+    with tab1:
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(
+                label="R² (Ajustado)",
+                value=f"{model_sm.rsquared_adj:.3f}",
+                delta=f"{(model_sm.rsquared_adj - model_sm.rsquared):.3f}",
+                help="R² ajustado penaliza modelos com muitas variáveis"
+            )
+        
+        with col2:
+            st.metric(
+                label="F-statistic",
+                value=f"{model_sm.fvalue:.2f}",
+                help="Testa se o modelo é melhor que a média simples"
+            )
+        
+        with col3:
+            significance = "✅ Significativo" if model_sm.f_pvalue < 0.05 else "❌ Não significativo"
+            st.metric(
+                label="P-value (F-test)",
+                value=f"{model_sm.f_pvalue:.4f}",
+                delta=significance,
+                help="Se p < 0.05, o modelo é estatisticamente válido"
+            )
+        
+        st.markdown(f"""
+        <div class="insight-box">
+        <h4>Interpretação:</h4>
+        <p>O modelo explica <strong>{model_sm.rsquared*100:.1f}%</strong> da variância em {target_var}. 
+        Com R² ajustado de <strong>{model_sm.rsquared_adj:.3f}</strong>, isso significa que as variáveis 
+        selecionadas têm poder preditivo {'forte' if model_sm.rsquared_adj > 0.7 else 'moderado' if model_sm.rsquared_adj > 0.4 else 'fraco'}.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with tab2:
+        coef_summary = pd.DataFrame({
+            'Variável': model_sm.params.index,
+            'Coeficiente': model_sm.params.values,
+            'Erro Padrão': model_sm.bse.values,
+            'p-value': model_sm.pvalues.values,
+            'IC 95% Min': model_sm.conf_int()[0].values,
+            'IC 95% Max': model_sm.conf_int()[1].values
+        }).round(4)
+        
+        coef_summary = coef_summary[coef_summary['Variável'] != 'const']
+        
+        coef_summary['Significativo'] = coef_summary['p-value'].apply(
+            lambda x: '✅ Sim' if x < 0.05 else '❌ Não'
+        )
+        
+        st.dataframe(
+            coef_summary.style.background_gradient(subset=['Coeficiente'], cmap='RdYlGn'),
+            use_container_width=True
+        )
+        
+        st.markdown("""
+        <div class="insight-box">
+        <h4>Como interpretar:</h4>
+        <ul>
+        <li><strong>Coeficiente positivo:</strong> Aumentar a variável aumenta o target</li>
+        <li><strong>Coeficiente negativo:</strong> Aumentar a variável diminui o target</li>
+        <li><strong>p-value < 0.05:</strong> A variável é estatisticamente significativa</li>
+        <li><strong>Intervalo de Confiança:</strong> Range onde o verdadeiro coeficiente provavelmente está</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with tab3:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            _, pvalue_bp, _, _ = het_breuschpagan(model_sm.resid, X_sm)
+            
+            st.markdown("#### 🔍 Teste de Breusch-Pagan")
+            st.markdown(f"**P-value:** {pvalue_bp:.4f}")
+            
+            if pvalue_bp > 0.05:
+                st.success("✅ Homocedasticidade confirmada (variância constante)")
+            else:
+                st.warning("⚠️ Heterocedasticidade detectada (variância não constante)")
+        
+        with col2:
+            # Teste de Normalidade dos Resíduos
+            from scipy.stats import shapiro
+            
+            if len(model_sm.resid) <= 5000:  # Shapiro só funciona bem com N < 5000
+                stat_shapiro, p_shapiro = shapiro(model_sm.resid)
+                
+                st.markdown("#### 📊 Teste de Normalidade (Shapiro-Wilk)")
+                st.markdown(f"**P-value:** {p_shapiro:.4f}")
+                
+                if p_shapiro > 0.05:
+                    st.success("✅ Resíduos seguem distribuição normal")
+                else:
+                    st.warning("⚠️ Resíduos não são normais (pode afetar intervalos de confiança)")
+            else:
+                st.info("Dataset muito grande para teste de Shapiro-Wilk. Use Q-Q plot para avaliar normalidade.")
+        
+        # Estatísticas adicionais
+        st.markdown("#### 📋 Estatísticas Adicionais")
+        
     
     st.markdown("### Fazer Predições")
     
@@ -555,7 +648,7 @@ def show_hypothesis_testing(data, filtered_data):
     st.markdown('<h2 class="section-header">Testes de Hipóteses</h2>', unsafe_allow_html=True)
     
     st.markdown("""
-    Esta seção aplica testes estatísticos para validar insights obtidos na análise exploratória,
+    Esta seção aplica testes t para validar insights obtidos na análise exploratória,
     utilizando intervalos de confiança e testes de significância.
     """)
     
@@ -611,47 +704,116 @@ def show_hypothesis_testing(data, filtered_data):
                 </div>
                 """, unsafe_allow_html=True)
     
-    st.markdown("### Teste 2: Correlação entre KDA e Win Rate")
+    st.markdown("### Teste 2: KDA Alto vs KDA Baixo - Impacto no Win Rate")
     
     common_data = filtered_data[['KDA', 'Win rate']].dropna()
     
-    if len(common_data) > 2:
-        corr_coef, corr_p_value = stats.pearsonr(common_data['KDA'], common_data['Win rate'])
+    if len(common_data) > 10:
+        kda_median = common_data['KDA'].median()
         
-        spear_coef, spear_p_value = stats.spearmanr(common_data['KDA'], common_data['Win rate'])
+        high_kda_group = common_data[common_data['KDA'] > kda_median]['Win rate']
+        low_kda_group = common_data[common_data['KDA'] <= kda_median]['Win rate']
         
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Pearson r", f"{corr_coef:.3f}")
-        with col2:
-            st.metric("p-value", f"{corr_p_value:.4f}")
-        with col3:
-            st.metric("Spearman ρ", f"{spear_coef:.3f}")
-        with col4:
-            st.metric("p-value", f"{spear_p_value:.4f}")
+        if len(high_kda_group) > 1 and len(low_kda_group) > 1:
+            t_stat, p_value = stats.ttest_ind(high_kda_group, low_kda_group)
+            
+            conf_interval_high = stats.t.interval(0.95, len(high_kda_group)-1, 
+                                                 loc=high_kda_group.mean(), 
+                                                 scale=stats.sem(high_kda_group))
+            conf_interval_low = stats.t.interval(0.95, len(low_kda_group)-1, 
+                                                loc=low_kda_group.mean(), 
+                                                scale=stats.sem(low_kda_group))
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(f"Win Rate - KDA Alto", f"{high_kda_group.mean():.3f}")
+                st.caption(f"IC 95%: [{conf_interval_high[0]:.3f}, {conf_interval_high[1]:.3f}]")
+                st.caption(f"n = {len(high_kda_group)}")
+            with col2:
+                st.metric(f"Win Rate - KDA Baixo", f"{low_kda_group.mean():.3f}")
+                st.caption(f"IC 95%: [{conf_interval_low[0]:.3f}, {conf_interval_low[1]:.3f}]")
+                st.caption(f"n = {len(low_kda_group)}")
+            with col3:
+                st.metric("p-value", f"{p_value:.4f}")
+                st.caption("Significativo" if p_value < 0.05 else "Não significativo")
+                st.metric("Diferença", f"{(high_kda_group.mean() - low_kda_group.mean()):.3f}")
+            
+            fig = px.box(
+                x=['KDA Alto' if kda > kda_median else 'KDA Baixo' for kda in common_data['KDA']],
+                y=common_data['Win rate'],
+                title=f"Distribuição do Win Rate por Grupo de KDA (mediana = {kda_median:.2f})"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            if p_value < 0.05:
+                st.markdown(f"""
+                <div class="insight-box">
+                <h4>Resultado Significativo</h4>
+                <p>Jogadores com KDA alto têm Win Rate significativamente {'maior' if high_kda_group.mean() > low_kda_group.mean() else 'menor'} 
+                que jogadores com KDA baixo (p = {p_value:.4f} < 0.05).</p>
+                <p><strong>Diferença média:</strong> {abs(high_kda_group.mean() - low_kda_group.mean()):.3f} pontos no Win Rate</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="warning-box">
+                <h4>Resultado Não Significativo</h4>
+                <p>Não há diferença estatisticamente significativa no Win Rate entre jogadores 
+                com KDA alto e baixo (p = {p_value:.4f} ≥ 0.05).</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    st.markdown("### Teste 3: Impacto do Gold Per Minute no Damage Percent")
+    
+    gpm_data = filtered_data[['GoldPerMin', 'DamagePercent']].dropna()
+    
+    if len(gpm_data) > 10:
+        gpm_median = gpm_data['GoldPerMin'].median()
         
-        fig = px.scatter(common_data, x='KDA', y='Win rate', 
-                        title="Correlação entre KDA e Win Rate",
-                        trendline="ols")
-        st.plotly_chart(fig, use_container_width=True)
+        high_gpm_group = gpm_data[gpm_data['GoldPerMin'] > gpm_median]['DamagePercent']
+        low_gpm_group = gpm_data[gpm_data['GoldPerMin'] <= gpm_median]['DamagePercent']
         
-        if abs(corr_coef) < 0.3:
-            strength = "fraca"
-        elif abs(corr_coef) < 0.7:
-            strength = "moderada"
-        else:
-            strength = "forte"
-        
-        st.markdown(f"""
-        <div class="insight-box">
-        <h4>Interpretação da Correlação</h4>
-        <ul>
-        <li><strong>Correlação Pearson:</strong> {corr_coef:.3f} (correlação {strength})</li>
-        <li><strong>Significância:</strong> {'Significativa' if corr_p_value < 0.05 else 'Não significativa'} (p = {corr_p_value:.4f})</li>
-        <li><strong>Interpretação:</strong> {'Existe relação linear significativa' if corr_p_value < 0.05 else 'Não há relação linear significativa'} entre KDA e Win Rate</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        if len(high_gpm_group) > 1 and len(low_gpm_group) > 1:
+            t_stat, p_value = stats.ttest_ind(high_gpm_group, low_gpm_group)
+            
+            conf_interval_high = stats.t.interval(0.95, len(high_gpm_group)-1, 
+                                                 loc=high_gpm_group.mean(), 
+                                                 scale=stats.sem(high_gpm_group))
+            conf_interval_low = stats.t.interval(0.95, len(low_gpm_group)-1, 
+                                                loc=low_gpm_group.mean(), 
+                                                scale=stats.sem(low_gpm_group))
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(f"Damage% - GPM Alto", f"{high_gpm_group.mean():.3f}")
+                st.caption(f"IC 95%: [{conf_interval_high[0]:.3f}, {conf_interval_high[1]:.3f}]")
+                st.caption(f"n = {len(high_gpm_group)}")
+            with col2:
+                st.metric(f"Damage% - GPM Baixo", f"{low_gpm_group.mean():.3f}")
+                st.caption(f"IC 95%: [{conf_interval_low[0]:.3f}, {conf_interval_low[1]:.3f}]")
+                st.caption(f"n = {len(low_gpm_group)}")
+            with col3:
+                st.metric("p-value", f"{p_value:.4f}")
+                st.caption("Significativo" if p_value < 0.05 else "Não significativo")
+                st.metric("Diferença", f"{(high_gpm_group.mean() - low_gpm_group.mean()):.3f}")
+            
+            if p_value < 0.05:
+                st.markdown(f"""
+                <div class="insight-box">
+                <h4>Resultado Significativo</h4>
+                <p>Jogadores com Gold Per Minute alto têm Damage Percent significativamente {'maior' if high_gpm_group.mean() > low_gpm_group.mean() else 'menor'} 
+                que jogadores com GPM baixo (p = {p_value:.4f} < 0.05).</p>
+                <p><strong>Interpretação:</strong> Maior eficiência econômica está associada a maior contribuição de dano.</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="warning-box">
+                <h4>Resultado Não Significativo</h4>
+                <p>Não há diferença estatisticamente significativa no Damage Percent entre jogadores 
+                com GPM alto e baixo (p = {p_value:.4f} ≥ 0.05).</p>
+                </div>
+                """, unsafe_allow_html=True)
 
 def show_interactive_visualizations(data, filtered_data):
     st.markdown('<h2 class="section-header">Visualizações Interativas</h2>', unsafe_allow_html=True)
@@ -720,64 +882,182 @@ def show_interactive_visualizations(data, filtered_data):
 def show_practical_solutions(data, filtered_data):
     st.markdown('<h2 class="section-header">Soluções Práticas e Recomendações</h2>', unsafe_allow_html=True)
     
-    st.markdown("### Recomendações Estratégicas")
+    st.markdown("""
+    Esta seção traduz os insights estatísticos obtidos nos testes de hipóteses em 
+    recomendações práticas e acionáveis para melhoria de performance dos jogadores.
+    """)
     
-    top_performers = filtered_data.nlargest(10, 'Performance_Score')
+    st.markdown("### Recomendações Baseadas em Evidências Estatísticas")
     
-    top_stats = top_performers[['KDA', 'Win rate', 'DamagePercent', 'KP%', 'GoldPerMin', 'CSPerMin']].mean()
-    overall_stats = filtered_data[['KDA', 'Win rate', 'DamagePercent', 'KP%', 'GoldPerMin', 'CSPerMin']].mean()
+    st.markdown("#### 1. Correlação KDA-Win Rate: Foco na Sobrevivência")
     
-    st.markdown("#### Características dos Top Performers")
+    common_data = filtered_data[['KDA', 'Win rate']].dropna()
+    if len(common_data) > 2:
+        corr_coef, corr_p_value = stats.pearsonr(common_data['KDA'], common_data['Win rate'])
+        
+        if corr_p_value < 0.05:
+            st.markdown(f"""
+            <div class="insight-box">
+            <h4>✅ Evidência Estatística Confirmada</h4>
+            <p><strong>Correlação KDA-Win Rate:</strong> {corr_coef:.3f} (p = {corr_p_value:.4f})</p>
+            <p><strong>Recomendação Prática:</strong> O teste confirma que melhorar o KDA tem impacto 
+            direto no Win Rate. Priorize estratégias de sobrevivência e participação em kills.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            kda_quartiles = filtered_data['KDA'].quantile([0.25, 0.5, 0.75])
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                low_kda = filtered_data[filtered_data['KDA'] <= kda_quartiles[0.25]]['Win rate'].mean()
+                st.metric("Win Rate - KDA Baixo (Q1)", f"{low_kda:.3f}")
+                
+            with col2:
+                mid_kda = filtered_data[
+                    (filtered_data['KDA'] > kda_quartiles[0.25]) & 
+                    (filtered_data['KDA'] <= kda_quartiles[0.75])
+                ]['Win rate'].mean()
+                st.metric("Win Rate - KDA Médio (Q2-Q3)", f"{mid_kda:.3f}")
+                
+            with col3:
+                high_kda = filtered_data[filtered_data['KDA'] > kda_quartiles[0.75]]['Win rate'].mean()
+                st.metric("Win Rate - KDA Alto (Q4)", f"{high_kda:.3f}")
+        
+        else:
+            st.markdown(f"""
+            <div class="warning-box">
+            <h4>⚠️ Correlação Não Significativa</h4>
+            <p>A correlação entre KDA e Win Rate não é estatisticamente significativa 
+            (p = {corr_p_value:.4f}). Outras variáveis podem ser mais importantes.</p>
+            </div>
+            """, unsafe_allow_html=True)
     
-    comparison_df = pd.DataFrame({
-        'Métrica': top_stats.index,
-        'Top 10 Jogadores': top_stats.values,
-        'Média Geral': overall_stats.values,
-        'Diferença (%)': ((top_stats.values - overall_stats.values) / overall_stats.values * 100)
-    }).round(3)
+    st.markdown("#### 2. Diferenças entre Posições: Estratégias Personalizadas")
     
-    st.dataframe(comparison_df, use_container_width=True)
+    positions = list(filtered_data['Position'].unique())
     
-    st.markdown(f"""
+    if len(positions) >= 2:
+        st.markdown("**Análise de Significância entre Posições:**")
+        
+        position_matrix = []
+        for i, pos1 in enumerate(positions):
+            row = []
+            for j, pos2 in enumerate(positions):
+                if i != j:
+                    data_pos1 = filtered_data[filtered_data['Position'] == pos1]['Performance_Score'].dropna()
+                    data_pos2 = filtered_data[filtered_data['Position'] == pos2]['Performance_Score'].dropna()
+                    
+                    if len(data_pos1) > 1 and len(data_pos2) > 1:
+                        _, p_value = stats.ttest_ind(data_pos1, data_pos2)
+                        row.append(p_value)
+                    else:
+                        row.append(1.0)
+                else:
+                    row.append(0.0)
+            position_matrix.append(row)
+        
+        position_stats = filtered_data.groupby('Position')['Performance_Score'].agg(['mean', 'std']).round(3)
+        position_stats = position_stats.sort_values('mean', ascending=False)
+        
+        st.dataframe(position_stats, use_container_width=True)
+        
+        st.markdown(f"""
+        <div class="insight-box">
+        <h4>🎯 Recomendações por Ranking de Performance</h4>
+        <p><strong>Posição com Melhor Performance:</strong> {position_stats.index[0]} (Score: {position_stats.iloc[0]['mean']:.3f})</p>
+        <p><strong>Maior Oportunidade de Melhoria:</strong> {position_stats.index[-1]} (Score: {position_stats.iloc[-1]['mean']:.3f})</p>
+        <p><strong>Estratégia:</strong> Estudar as práticas da posição com melhor performance e adaptar 
+        para as posições com menor score.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        selected_pos = st.selectbox("Selecione uma posição para recomendações detalhadas:", positions)
+        
+        if selected_pos:
+            pos_performance = position_stats.loc[selected_pos, 'mean']
+            best_performance = position_stats.iloc[0]['mean']
+            gap = best_performance - pos_performance
+            
+            if gap > 0.05:
+                st.markdown(f"""
+                <div class="warning-box">
+                <h4>📈 Plano de Melhoria para {selected_pos}</h4>
+                <p><strong>Gap de Performance:</strong> {gap:.3f} pontos abaixo do líder</p>
+                <p><strong>Meta:</strong> Reduzir o gap focando nas métricas que mais impactam o Performance Score</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="insight-box">
+                <h4>✅ Performance Competitiva para {selected_pos}</h4>
+                <p>Performance próxima ao líder. Foque em manter consistência.</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    st.markdown("#### 3. Plano de Ação Estatisticamente Fundamentado")
+    
+    performance_metrics = ['KDA', 'Win rate', 'DamagePercent', 'KP%', 'GoldPerMin', 'CSPerMin']
+    correlations_with_performance = []
+    
+    for metric in performance_metrics:
+        if metric in filtered_data.columns:
+            corr, p_val = stats.pearsonr(filtered_data[metric].dropna(), 
+                                       filtered_data['Performance_Score'].dropna())
+            correlations_with_performance.append({
+                'Métrica': metric,
+                'Correlação': corr,
+                'P-value': p_val,
+                'Significativo': p_val < 0.05,
+                'Prioridade': 'Alta' if abs(corr) > 0.5 and p_val < 0.05 else 
+                             'Média' if abs(corr) > 0.3 and p_val < 0.05 else 'Baixa'
+            })
+    
+    priority_df = pd.DataFrame(correlations_with_performance)
+    priority_df = priority_df.sort_values('Correlação', key=abs, ascending=False)
+    
+    st.markdown("**Priorização de Métricas (baseada em correlação estatística):**")
+    st.dataframe(priority_df.round(3), use_container_width=True)
+    
+    high_priority_metrics = priority_df[priority_df['Prioridade'] == 'Alta']['Métrica'].tolist()
+    
+    if high_priority_metrics:
+        st.markdown(f"""
+        <div class="insight-box">
+        <h4>🎯 Métricas de Alta Prioridade para Melhoria</h4>
+        <p>Baseado na análise estatística, foque em melhorar:</p>
+        <ul>
+        {''.join([f'<li><strong>{metric}</strong></li>' for metric in high_priority_metrics])}
+        </ul>
+        <p>Essas métricas têm correlação estatisticamente significativa com a performance geral.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("#### 4. Monitoramento e Validação")
+
+    st.markdown("""
     <div class="insight-box">
-    <h4>Insights para Melhoria de Performance:</h4>
+    <h4>Sistema de Acompanhamento Sugerido</h4>
     <ul>
-    <li><strong>KDA Superior:</strong> Top performers mantêm KDA {((top_stats['KDA'] - overall_stats['KDA']) / overall_stats['KDA'] * 100):.1f}% mais alto que a média</li>
-    <li><strong>Participação em Kills:</strong> Maior KP% indica melhor coordenação de equipe</li>
-    <li><strong>Eficiência Econômica:</strong> Melhor farm (CS/min) e conversão em ouro</li>
-    <li><strong>Impacto no Dano:</strong> Maior % de dano da equipe</li>
+    <li><strong>Métricas Semanais:</strong> Acompanhar as variáveis de alta prioridade identificadas</li>
+    <li><strong>Testes A/B:</strong> Implementar mudanças graduais e medir impacto</li>
+    <li><strong>Intervalos de Confiança:</strong> Definir metas baseadas nos ICs calculados</li>
+    <li><strong>Significância Estatística:</strong> Validar melhorias com testes de hipótese</li>
     </ul>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.markdown("### Recomendações Específicas por Posição")
-    
-    position_recommendations = {
-        'Top': ['Controle de Lane e Teamfight', 'Focar no farm early game', 'Melhorar teleports'],
-        'Jungle': ['Map Control e Ganks', 'Maximizar presença no mapa', 'Coordenar objetivos'],
-        'Mid': ['Damage e Roaming', 'Balancear farm com fights', 'Melhorar wave management'],
-        'Adc': ['DPS e Posicionamento', 'Focar em positioning', 'Melhorar farm'],
-        'Support': ['Vision e Utility', 'Maximizar vision control', 'Melhorar roaming']
-    }
-    
-    selected_pos = st.selectbox("Selecione uma posição:", list(position_recommendations.keys()))
-    
-    if selected_pos:
-        recommendations = position_recommendations[selected_pos]
-        st.markdown(f"#### Recomendações para {selected_pos}:")
-        for rec in recommendations:
-            st.markdown(f"• {rec}")
-    
-    st.markdown("### Limitações do Estudo")
+        
+    st.markdown("### Limitações e Considerações Estatísticas")
     
     st.markdown("""
     <div class="warning-box">
-    <h4>Limitações Importantes:</h4>
+    <h4>⚠️ Limitações dos Testes de Hipóteses:</h4>
     <ul>
-    <li><strong>Dados Temporais:</strong> Análise baseada em snapshot</li>
-    <li><strong>Contexto de Patches:</strong> Mudanças no jogo podem afetar métricas</li>
-    <li><strong>Meta Game:</strong> Estratégias podem influenciar performance</li>
-    <li><strong>Fatores Externos:</strong> Coaching e ambiente não são considerados</li>
+    <li><strong>Correlação ≠ Causalidade:</strong> Relações estatísticas não implicam causa-efeito</li>
+    <li><strong>Tamanho da Amostra:</strong> Resultados dependem do número de observações</li>
+    <li><strong>Suposições dos Testes:</strong> Normalidade e homogeneidade de variâncias</li>
+    <li><strong>Múltiplas Comparações:</strong> Risco de falsos positivos em testes múltiplos</li>
+    <li><strong>Contexto Temporal:</strong> Dados podem não refletir mudanças recentes do jogo</li>
     </ul>
     </div>
     """, unsafe_allow_html=True)
