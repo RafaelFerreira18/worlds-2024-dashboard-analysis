@@ -386,7 +386,7 @@ def show_statistical_modeling(data, filtered_data):
     with col1:
         target_var = st.selectbox(
             "Variável Dependente (Target):",
-            ['Win rate', 'Performance_Score', 'KDA', 'DamagePercent']
+            ['Performance_Score', 'Win rate', 'KDA', 'DamagePercent']
         )
     
     with col2:
